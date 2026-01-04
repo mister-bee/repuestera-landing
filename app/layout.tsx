@@ -11,23 +11,29 @@ export const metadata: Metadata = {
   title: "Repuestera San Cayetano | Motos y Bicicletas - Rosario de Lerma, Salta",
   description:
     "Taller de motos y bicicletas en Rosario de Lerma, Salta, Argentina. Reparaciones, repuestos y servicio de calidad.",
-  generator: "v0.app",
   icons: {
-    icon: [
+    icon: "/logo.jpeg",
+    apple: "/logo.jpeg",
+  },
+  openGraph: {
+    title: "Repuestera San Cayetano | Motos y Bicicletas",
+    description: "Taller de motos y bicicletas en Rosario de Lerma, Salta, Argentina. Reparaciones, repuestos y servicio de calidad.",
+    images: [
       {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/logo.jpeg",
+        width: 1200,
+        height: 1200,
+        alt: "Repuestera San Cayetano Logo",
       },
     ],
-    apple: "/apple-icon.png",
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Repuestera San Cayetano | Motos y Bicicletas",
+    description: "Taller de motos y bicicletas en Rosario de Lerma, Salta, Argentina.",
+    images: ["/logo.jpeg"],
   },
 }
 
