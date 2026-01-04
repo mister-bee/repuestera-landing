@@ -1,23 +1,92 @@
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Wrench, Phone, MapPin, Clock, CheckCircle, Menu } from "lucide-react"
 import Image from "next/image"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function Home() {
+  const [logoExpanded, setLogoExpanded] = useState(false)
+  const [formData, setFormData] = useState({ name: "", contact: "", message: "" })
+  const [formStatus, setFormStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState("")
+
+  const handleWhatsAppSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormStatus("loading")
+    setErrorMessage("")
+
+    try {
+      const response = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setFormStatus("success")
+        setFormData({ name: "", contact: "", message: "" })
+      } else if (data.fallback) {
+        // API not configured, use direct WhatsApp link
+        window.open(data.whatsappUrl, "_blank")
+        setFormStatus("idle")
+      } else {
+        setFormStatus("error")
+        setErrorMessage(data.error || "Error al enviar mensaje")
+      }
+    } catch {
+      setFormStatus("error")
+      setErrorMessage("Error de conexion. Intente nuevamente.")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Expanded Logo Overlay */}
+      <AnimatePresence>
+        {logoExpanded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center cursor-pointer"
+            onClick={() => setLogoExpanded(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.1 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.1 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            >
+              <Image
+                src="/logo.jpeg"
+                alt="Repuestera San Cayetano"
+                width={600}
+                height={600}
+                className="rounded-full shadow-2xl"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-background/95 backdrop-blur-sm z-50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo.jpeg"
-                alt="Repuestera San Cayetano"
-                width={60}
-                height={60}
-                className="rounded-full"
-              />
+              <button onClick={() => setLogoExpanded(true)} className="focus:outline-none">
+                <Image
+                  src="/logo.jpeg"
+                  alt="Repuestera San Cayetano"
+                  width={60}
+                  height={60}
+                  className="rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                />
+              </button>
               <div>
                 <h1 className="text-lg font-bold tracking-tight text-foreground">REPUESTERA</h1>
                 <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SAN CAYETANO</h2>
@@ -68,7 +137,7 @@ export default function Home() {
             </div>
             <div className="relative h-[500px] rounded-2xl overflow-hidden">
               <Image
-                src="/mechanic.jpg"
+                src="/mechanic.png"
                 alt="Taller de motos"
                 fill
                 className="object-cover"
@@ -299,44 +368,83 @@ export default function Home() {
             <Card className="bg-card border-2 border-border">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold mb-6">ENVIANOS TU CONSULTA</h3>
-                <form className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium mb-2">
-                      Nombre
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Tu nombre"
-                    />
+
+                {formStatus === "success" ? (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">✓</div>
+                    <h4 className="text-xl font-bold text-primary mb-2">Mensaje Enviado</h4>
+                    <p className="text-muted-foreground mb-4">Nos pondremos en contacto pronto.</p>
+                    <Button
+                      onClick={() => setFormStatus("idle")}
+                      variant="outline"
+                      className="font-bold"
+                    >
+                      ENVIAR OTRO MENSAJE
+                    </Button>
                   </div>
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium mb-2">
-                      Email o Teléfono
-                    </label>
-                    <input
-                      type="text"
-                      id="email"
-                      className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="tu@email.com"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium mb-2">
-                      Mensaje
-                    </label>
-                    <textarea
-                      id="message"
-                      rows={4}
-                      className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                      placeholder="Contanos qué necesitás..."
-                    />
-                  </div>
-                  <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-lg h-12">
-                    ENVIAR MENSAJE
-                  </Button>
-                </form>
+                ) : (
+                  <form className="space-y-4" onSubmit={handleWhatsAppSubmit}>
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium mb-2">
+                        Nombre
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Tu nombre"
+                        required
+                        disabled={formStatus === "loading"}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="contact" className="block text-sm font-medium mb-2">
+                        Email o Teléfono
+                      </label>
+                      <input
+                        type="text"
+                        id="contact"
+                        value={formData.contact}
+                        onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                        className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="tu@email.com o teléfono"
+                        required
+                        disabled={formStatus === "loading"}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="message" className="block text-sm font-medium mb-2">
+                        Mensaje
+                      </label>
+                      <textarea
+                        id="message"
+                        rows={4}
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                        placeholder="Contanos qué necesitás..."
+                        required
+                        disabled={formStatus === "loading"}
+                      />
+                    </div>
+
+                    {formStatus === "error" && (
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-600 text-sm">
+                        {errorMessage}
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-lg h-12"
+                      disabled={formStatus === "loading"}
+                    >
+                      {formStatus === "loading" ? "ENVIANDO..." : "ENVIAR POR WHATSAPP"}
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -348,13 +456,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo.jpeg"
-                alt="Repuestera San Cayetano"
-                width={50}
-                height={50}
-                className="rounded-full"
-              />
+              <button onClick={() => setLogoExpanded(true)} className="focus:outline-none">
+                <Image
+                  src="/logo.jpeg"
+                  alt="Repuestera San Cayetano"
+                  width={50}
+                  height={50}
+                  className="rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                />
+              </button>
               <div>
                 <h3 className="font-bold text-lg">REPUESTERA SAN CAYETANO</h3>
                 <p className="text-sm text-muted-foreground">Rosario de Lerma, Salta</p>
